@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:voicemail/core/constants/app_constants.dart';
 import 'package:voicemail/core/extensions/context_extensions.dart';
+import 'package:voicemail/core/telephony/telephony_service.dart';
 import 'package:voicemail/design_system/components/components.dart';
 import 'package:voicemail/design_system/tokens/spacing_tokens.dart';
 import 'package:voicemail/features/call_modes/domain/auto_reply_rules.dart';
@@ -17,6 +20,11 @@ class AutoMessagingScreen extends ConsumerStatefulWidget {
 class _AutoMessagingScreenState extends ConsumerState<AutoMessagingScreen> {
   late final TextEditingController _messageController;
   late final TextEditingController _waNumberController;
+  late final TextEditingController _testNumberController;
+  bool _isTesting = false;
+  String? _testResultTitle;
+  String? _testResultMessage;
+  bool _testSuccess = false;
 
   @override
   void initState() {
@@ -24,13 +32,103 @@ class _AutoMessagingScreenState extends ConsumerState<AutoMessagingScreen> {
     final state = ref.read(autoMessagingControllerProvider);
     _messageController = TextEditingController(text: state.customMessage);
     _waNumberController = TextEditingController(text: state.whatsAppNumber);
+    _testNumberController = TextEditingController();
   }
 
   @override
   void dispose() {
     _messageController.disposeDisposeSafe();
     _waNumberController.disposeDisposeSafe();
+    _testNumberController.disposeDisposeSafe();
     super.dispose();
+  }
+
+  Future<void> _performTestDispatch() async {
+    final rawNumber = _testNumberController.text.trim();
+    if (rawNumber.isEmpty) {
+      context.showSnackBar('Please enter a phone number to test');
+      return;
+    }
+
+    setState(() {
+      _isTesting = true;
+      _testResultTitle = null;
+      _testResultMessage = null;
+    });
+
+    final state = ref.read(autoMessagingControllerProvider);
+    final cleanDigits = rawNumber.replaceAll(RegExp(r'[^0-9]'), '');
+    final normNumber = cleanDigits.length >= 10 ? cleanDigits.substring(cleanDigits.length - 10) : cleanDigits;
+
+    bool shouldSend = false;
+    String conditionExplanation = '';
+
+    switch (state.targetMode) {
+      case AutoMsgTargetMode.all:
+        shouldSend = true;
+        conditionExplanation = 'Option 1 (All Callers) is active. Auto-replies are allowed for all numbers.';
+        break;
+      case AutoMsgTargetMode.selectedOnly:
+        final isWhitelisted = state.selectedContacts.any((c) {
+          final cClean = c.cleanNumber;
+          return cClean == normNumber || cClean.endsWith(normNumber) || normNumber.endsWith(cClean);
+        });
+        if (isWhitelisted) {
+          shouldSend = true;
+          conditionExplanation = 'Option 2 (Selected Numbers Only): $rawNumber matches your Whitelist. Auto-message approved!';
+        } else {
+          shouldSend = false;
+          conditionExplanation = 'Option 2 (Selected Numbers Only): $rawNumber is NOT in your Whitelist. Message prevented as configured.';
+        }
+        break;
+      case AutoMsgTargetMode.unsavedOnly:
+        final isWhitelisted = state.selectedContacts.any((c) => c.cleanNumber == normNumber);
+        shouldSend = !isWhitelisted;
+        conditionExplanation = shouldSend
+            ? 'Option 3 (Unsaved Only): Number is not in your saved list. Auto-message approved.'
+            : 'Option 3 (Unsaved Only): Number matches a known contact. Auto-message withheld.';
+        break;
+      case AutoMsgTargetMode.excludeSelected:
+        final isBlacklisted = state.selectedContacts.any((c) {
+          final cClean = c.cleanNumber;
+          return cClean == normNumber || cClean.endsWith(normNumber) || normNumber.endsWith(cClean);
+        });
+        if (isBlacklisted) {
+          shouldSend = false;
+          conditionExplanation = 'Option 4 (Exclude Selected): $rawNumber is in your Blacklist. Auto-message blocked.';
+        } else {
+          shouldSend = true;
+          conditionExplanation = 'Option 4 (Exclude Selected): $rawNumber is not blacklisted. Auto-message approved.';
+        }
+        break;
+    }
+
+    if (shouldSend) {
+      final res = await TelephonyService.sendSms(
+        recipient: rawNumber,
+        message: state.previewMessage,
+      );
+      final isSent = res['success'] == true;
+      if (mounted) {
+        setState(() {
+          _isTesting = false;
+          _testSuccess = isSent;
+          _testResultTitle = isSent ? 'Message Delivered' : 'Delivery Failed';
+          _testResultMessage = isSent
+              ? '$conditionExplanation\n\nResult: SMS successfully dispatched to $rawNumber.'
+              : '$conditionExplanation\n\nResult: SMS dispatch failed (${res['error'] ?? 'Permission or Carrier issue'}). Recorded in diagnostics.';
+        });
+      }
+    } else {
+      if (mounted) {
+        setState(() {
+          _isTesting = false;
+          _testSuccess = true;
+          _testResultTitle = 'Rule Enforced Correctly';
+          _testResultMessage = conditionExplanation;
+        });
+      }
+    }
   }
 
   Future<void> _pickContactFromPhone() async {
@@ -490,6 +588,121 @@ class _AutoMessagingScreenState extends ConsumerState<AutoMessagingScreen> {
                     style: context.textTheme.labelSmall?.copyWith(color: colorScheme.onSurfaceVariant),
                   ),
                 ),
+              ],
+            ),
+          ),
+          // 6. Test Auto-Reply Delivery & Rules Verification
+          Text(
+            'TEST AUTO-REPLY DELIVERY',
+            style: context.textTheme.labelMedium?.copyWith(
+              color: colorScheme.primary,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.0,
+            ),
+          ),
+          AppSpacing.vSpace8,
+          Text(
+            'Verify your active option rule (Option 2 Whitelist, Blacklist, or All) and confirm real-time SMS delivery.',
+            style: context.textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+          ),
+          AppSpacing.vSpace12,
+
+          AppCard(
+            variant: AppCardVariant.outlined,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  controller: _testNumberController,
+                  keyboardType: TextInputType.phone,
+                  decoration: InputDecoration(
+                    labelText: 'Test Phone Number',
+                    hintText: 'e.g. +919845012345 or 9845012345',
+                    prefixIcon: const Icon(Icons.phone_android_rounded),
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.contacts_outlined),
+                      tooltip: 'Select from contacts',
+                      onPressed: () async {
+                        try {
+                          final hasPerm = await FlutterContacts.requestPermission(readonly: true);
+                          if (hasPerm) {
+                            final contact = await FlutterContacts.openExternalPick();
+                            if (contact != null && contact.phones.isNotEmpty) {
+                              _testNumberController.text = contact.phones.first.number;
+                            }
+                          }
+                        } catch (_) {}
+                      },
+                    ),
+                  ),
+                ),
+                AppSpacing.vSpace12,
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    icon: _isTesting
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          )
+                        : const Icon(Icons.send_rounded, size: 18),
+                    label: Text(_isTesting ? 'Evaluating & Delivering...' : 'Test Message Delivery'),
+                    onPressed: _isTesting ? null : _performTestDispatch,
+                  ),
+                ),
+                if (_testResultTitle != null) ...[
+                  AppSpacing.vSpace12,
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: _testSuccess
+                          ? colorScheme.primaryContainer.withValues(alpha: 0.3)
+                          : colorScheme.errorContainer.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: _testSuccess ? colorScheme.primary : colorScheme.error,
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              _testSuccess ? Icons.check_circle_outline : Icons.error_outline,
+                              size: 18,
+                              color: _testSuccess ? colorScheme.primary : colorScheme.error,
+                            ),
+                            AppSpacing.hSpace8,
+                            Text(
+                              _testResultTitle!,
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: _testSuccess ? colorScheme.primary : colorScheme.error,
+                              ),
+                            ),
+                          ],
+                        ),
+                        AppSpacing.vSpace6,
+                        Text(
+                          _testResultMessage ?? '',
+                          style: context.textTheme.bodySmall?.copyWith(height: 1.4),
+                        ),
+                        AppSpacing.vSpace8,
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton.icon(
+                            icon: const Icon(Icons.history_rounded, size: 16),
+                            label: const Text('View in Call Diagnostics'),
+                            onPressed: () => context.push(AppConstants.routeDiagnostics),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

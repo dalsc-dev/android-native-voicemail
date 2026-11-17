@@ -23,6 +23,7 @@ class _PermissionRationaleScreenState
     'contacts': false,
     'batteryExempt': false,
     'notifications': false,
+    'sms': false,
   };
 
   bool _isLoading = false;
@@ -162,6 +163,22 @@ class _PermissionRationaleScreenState
                   actionLabel: 'Allow',
                   onGrant: () async {
                     await service.requestNotificationsPermission();
+                    await _refreshPermissions();
+                  },
+                ),
+                AppSpacing.vSpace12,
+
+                // 7. SMS Dispatch
+                AppPermissionCard(
+                  icon: Icons.sms_outlined,
+                  title: 'SMS & Auto-Messaging',
+                  description:
+                      'Required for Option 2 (Auto-Decline with Message) to instantly deliver automated text replies to callers when you cannot pick up.',
+                  isGranted: _statuses['sms'] ?? false,
+                  isMandatory: false,
+                  actionLabel: 'Allow',
+                  onGrant: () async {
+                    await service.requestSmsPermission();
                     await _refreshPermissions();
                   },
                 ),

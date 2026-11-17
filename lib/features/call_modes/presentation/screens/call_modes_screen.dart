@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:voicemail/app/di/service_providers.dart';
 import 'package:voicemail/core/extensions/context_extensions.dart';
 import 'package:voicemail/core/reliability/reliability_service.dart';
 import 'package:voicemail/design_system/components/components.dart';
@@ -19,6 +20,36 @@ class CallModesScreen extends ConsumerWidget {
     CallHandlingMode mode,
   ) async {
     final controller = ref.read(modesControllerProvider.notifier);
+
+    if (mode == CallHandlingMode.autoDecline) {
+      final isSmsGranted = await ref.read(permissionServiceProvider).isSmsPermissionGranted();
+      if (!isSmsGranted && context.mounted) {
+        final shouldRequest = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            icon: const Icon(Icons.sms_outlined, size: 40, color: Colors.blue),
+            title: const Text('SMS Permission Required'),
+            content: const Text(
+              'Auto-Decline with Message delivers automated SMS replies to callers when you cannot answer.\n\n'
+              'Please grant SMS permission to enable message dispatch.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Grant Permission'),
+              ),
+            ],
+          ),
+        );
+        if (shouldRequest == true) {
+          await ref.read(permissionServiceProvider).requestSmsPermission();
+        }
+      }
+    }
 
     if (mode == CallHandlingMode.autoAnswer) {
       final isDefault = await ReliabilityService.isDefaultDialer();
@@ -66,7 +97,7 @@ class CallModesScreen extends ConsumerWidget {
           keyboardType: TextInputType.phone,
           decoration: const InputDecoration(
             labelText: 'Phone Number',
-            hintText: '+1 (555) 010-0000',
+            hintText: 'e.g. +1234567890 or 9845012345',
             prefixIcon: Icon(Icons.phone),
           ),
         ),

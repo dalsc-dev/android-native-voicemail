@@ -72,16 +72,9 @@ class _VoicemailInboxScreenState extends ConsumerState<VoicemailInboxScreen> {
         ],
       );
     } else {
-      appBar = AppAppBar(
+      appBar = const AppAppBar(
         title: 'Voicemail',
         showBackButton: false,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.palette_outlined),
-            tooltip: 'M3 Component Gallery',
-            onPressed: () => context.push(AppConstants.routeComponentGallery),
-          ),
-        ],
       );
     }
 

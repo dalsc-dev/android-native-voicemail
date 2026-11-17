@@ -149,7 +149,8 @@ void main() {
       await tester.pumpWidget(buildTestableWidget(const SettingsScreen()));
       await tester.pumpAndSettle();
 
-      expect(find.text('Jane Doe'), findsOneWidget);
+      expect(find.text('Display Name'), findsOneWidget);
+      expect(find.text('Empty, tap to set up'), findsWidgets);
 
       await tester.tap(find.text('Display Name'));
       await tester.pumpAndSettle();

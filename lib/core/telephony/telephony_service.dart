@@ -70,4 +70,42 @@ class TelephonyService {
       await _channel.invokeMethod('openCallSettings');
     } catch (_) {}
   }
+
+  /// Sends SMS message directly via Android SmsManager and records diagnostic audit
+  static Future<Map<String, dynamic>> sendSms({
+    required String recipient,
+    required String message,
+  }) async {
+    try {
+      final dynamic result = await _channel.invokeMethod('sendSms', {
+        'recipient': recipient,
+        'message': message,
+      });
+      return Map<String, dynamic>.from(result as Map);
+    } on PlatformException catch (e) {
+      return {'success': false, 'error': e.message ?? e.code};
+    } catch (e) {
+      return {'success': false, 'error': e.toString()};
+    }
+  }
+
+  /// Checks if SEND_SMS permission is granted
+  static Future<bool> isSmsPermissionGranted() async {
+    try {
+      final bool? granted = await _channel.invokeMethod('isSmsPermissionGranted');
+      return granted ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Requests SEND_SMS runtime permission
+  static Future<bool> requestSmsPermission() async {
+    try {
+      final bool? result = await _channel.invokeMethod('requestSmsPermission');
+      return result ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
 }

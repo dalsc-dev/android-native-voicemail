@@ -69,11 +69,11 @@ class _CallDiagnosticsScreenState extends State<CallDiagnosticsScreen> {
 
     for (final item in _logs) {
       final time = item['timestamp'] ?? '';
-      final rawNum = item['caller_number'] ?? '';
+      final rawNum = item['caller_number'] ?? item['caller_masked'] ?? '';
       final num = AppLogger.redact(rawNum.toString());
       final decision = item['decision'] ?? '';
-      final reason = item['reason'] ?? '';
-      final carrier = item['carrier_response'] ?? '';
+      final reason = item['reason'] ?? item['rule_matched'] ?? '';
+      final carrier = item['carrier_response'] ?? item['carrier'] ?? '';
 
       buffer.writeln('[$time] CALLER: $num');
       buffer.writeln('DECISION: $decision');
@@ -93,9 +93,9 @@ class _CallDiagnosticsScreenState extends State<CallDiagnosticsScreen> {
     final filtered = _logs.where((l) {
       if (_filterQuery.isEmpty) return true;
       final q = _filterQuery.toLowerCase();
-      final num = (l['caller_number'] ?? '').toString().toLowerCase();
+      final num = (l['caller_number'] ?? l['caller_masked'] ?? '').toString().toLowerCase();
       final dec = (l['decision'] ?? '').toString().toLowerCase();
-      final rea = (l['reason'] ?? '').toString().toLowerCase();
+      final rea = (l['reason'] ?? l['rule_matched'] ?? '').toString().toLowerCase();
       return num.contains(q) || dec.contains(q) || rea.contains(q);
     }).toList();
 
@@ -152,11 +152,11 @@ class _CallDiagnosticsScreenState extends State<CallDiagnosticsScreen> {
     final timeStr = rawTime.length >= 19
         ? rawTime.substring(0, 19).replaceAll('T', ' ')
         : rawTime;
-    final rawNumber = item['caller_number']?.toString() ?? 'Unknown';
+    final rawNumber = (item['caller_number'] ?? item['caller_masked'] ?? 'Unknown').toString();
     final number = AppLogger.redact(rawNumber);
     final decision = item['decision']?.toString() ?? 'UNKNOWN';
-    final reason = item['reason']?.toString() ?? '';
-    final carrier = item['carrier_response']?.toString() ?? '';
+    final reason = (item['reason'] ?? item['rule_matched'] ?? '').toString();
+    final carrier = (item['carrier_response'] ?? item['carrier'] ?? '').toString();
 
     Color badgeBg;
     Color badgeFg;

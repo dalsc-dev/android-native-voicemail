@@ -378,7 +378,7 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                   keyboardType: TextInputType.phone,
                   decoration: InputDecoration(
                     labelText: 'Voicemail Forwarding Number',
-                    hintText: '${_selectedRegion.phonePrefix} (555) 010-0000',
+                    hintText: 'e.g. ${_selectedRegion.phonePrefix} 9845012345',
                     prefixIcon: const Icon(Icons.dialer_sip),
                   ),
                   onChanged: (_) => setState(() {}),

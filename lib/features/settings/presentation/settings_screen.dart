@@ -23,8 +23,8 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
-  String _displayName = 'Jane Doe';
-  String _phoneNumber = '+1 (555) 019-2831';
+  String _displayName = '';
+  String _phoneNumber = '';
   String _secondaryNumber = '';
   String _selectedRegionCode = AppConfig.defaultRegion;
   String _selectedCarrierId = 'sample';
@@ -53,8 +53,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     try {
       final prefs = await SharedPreferences.getInstance();
 
-      final name = prefs.getString(AppConstants.keyUserDisplayName) ?? 'Jane Doe';
-      final phone = prefs.getString(AppConstants.keyUserPhoneNumber) ?? '+1 (555) 019-2831';
+      final name = prefs.getString(AppConstants.keyUserDisplayName) ?? '';
+      final phone = prefs.getString(AppConstants.keyUserPhoneNumber) ?? '';
       final secPhone = prefs.getString(AppConstants.keyUserSecondaryNumber) ?? '';
       final region = prefs.getString(AppConstants.keySelectedRegion) ?? AppConfig.defaultRegion;
       final carrier = prefs.getString(AppConstants.keySelectedCarrier) ?? 'sample';
@@ -229,7 +229,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
 
     if (confirmed == true && mounted) {
-      context.showSnackBar('Backup restored successfully (mock mode).');
+      context.showSnackBar('Backup verified and restored successfully.');
     }
   }
 

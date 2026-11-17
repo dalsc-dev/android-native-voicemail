@@ -75,5 +75,33 @@ void main() {
       expect(preview, contains('Chat: https://wa.me/15551234567'));
       expect(preview, contains('If urgent, call back within 3 mins'));
     });
+
+    test('Option 2 (SELECTED_ONLY) saves to SharedPreferences and verifies whitelisted numbers', () async {
+      final controller = AutoMessagingController();
+      await controller.loadSettings();
+      await controller.setTargetMode(AutoMsgTargetMode.selectedOnly);
+
+      const vipContact = AutoReplyContact(name: 'VIP Client', number: '+919845012345');
+      await controller.addContact(vipContact);
+
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getString(AutoMessagingController.keyTargetMode), 'SELECTED_ONLY');
+
+      final contactsJson = prefs.getString(AutoMessagingController.keyContacts);
+      expect(contactsJson, contains('VIP Client'));
+      expect(contactsJson, contains('+919845012345'));
+
+      final numbersJson = prefs.getString(AutoMessagingController.keyNumbers);
+      expect(numbersJson, contains('9845012345'));
+
+      // Check matching logic
+      final isMatched = controller.state.selectedContacts.any((c) =>
+          c.cleanNumber == '9845012345' || c.number.contains('9845012345'));
+      expect(isMatched, isTrue);
+
+      final nonWhitelisted = controller.state.selectedContacts.any((c) =>
+          c.cleanNumber == '9999999999');
+      expect(nonWhitelisted, isFalse);
+    });
   });
 }

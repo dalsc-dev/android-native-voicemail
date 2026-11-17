@@ -440,7 +440,7 @@ class _RegionCarrierScreenState extends ConsumerState<RegionCarrierScreen> {
                   keyboardType: TextInputType.phone,
                   decoration: const InputDecoration(
                     labelText: 'Relay Phone Number',
-                    hintText: '+1 (555) 019-8765',
+                    hintText: 'e.g. +1234567890 or 9845012345',
                     prefixIcon: Icon(Icons.dialer_sip_outlined),
                     helperText: 'Number configured in your telephony server or carrier profile.',
                   ),

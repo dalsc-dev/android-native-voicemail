@@ -13,6 +13,7 @@ class FakePermissionService implements PermissionService {
               'contacts': false,
               'batteryExempt': false,
               'notifications': false,
+              'sms': false,
             };
 
   @override
@@ -37,6 +38,9 @@ class FakePermissionService implements PermissionService {
   @override
   Future<bool> isBatteryOptimizationExempt() async =>
       _statuses['batteryExempt'] ?? false;
+
+  @override
+  Future<bool> isSmsPermissionGranted() async => _statuses['sms'] ?? false;
 
   @override
   Future<bool> requestPhonePermission() async {
@@ -71,6 +75,12 @@ class FakePermissionService implements PermissionService {
   @override
   Future<bool> requestBatteryOptimizationExempt() async {
     _statuses['batteryExempt'] = true;
+    return true;
+  }
+
+  @override
+  Future<bool> requestSmsPermission() async {
+    _statuses['sms'] = true;
     return true;
   }
 

@@ -14,6 +14,7 @@ import android.os.Looper
 import android.telephony.SubscriptionInfo
 import android.telephony.SubscriptionManager
 import android.telephony.TelephonyManager
+import android.telephony.SmsManager
 import android.telecom.TelecomManager
 import androidx.annotation.NonNull
 import androidx.core.app.ActivityCompat
@@ -153,6 +154,76 @@ class MainActivity: FlutterActivity() {
                         "status" to "SUCCESS",
                         "message" to "Dialed $ussdCode via system phone dialer."
                     ))
+                }
+                "sendSms" -> {
+                    val recipient = call.argument<String>("recipient") ?: ""
+                    val message = call.argument<String>("message") ?: ""
+                    val cleanRecipient = recipient.filter { it.isDigit() || it == '+' }
+
+                    if (cleanRecipient.isEmpty() || message.isEmpty()) {
+                        result.error("INVALID_ARGS", "Recipient and message must not be empty", null)
+                        return@setMethodCallHandler
+                    }
+
+                    if (ActivityCompat.checkSelfPermission(this, Manifest.permission.SEND_SMS) != PackageManager.PERMISSION_GRANTED) {
+                        result.error("PERMISSION_DENIED", "SEND_SMS permission is required to send messages", null)
+                        return@setMethodCallHandler
+                    }
+
+                    try {
+                        val smsManager = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                            getSystemService(SmsManager::class.java)
+                        } else {
+                            @Suppress("DEPRECATION")
+                            SmsManager.getDefault()
+                        }
+                        val parts = smsManager.divideMessage(message)
+                        smsManager.sendMultipartTextMessage(cleanRecipient, null, parts, null, null)
+
+                        DiagnosticLogger.logCall(
+                            applicationContext,
+                            DiagnosticLogger.CallEvent(
+                                rawNumber = cleanRecipient,
+                                carrier = "Direct SMS Dispatch",
+                                dndActive = false,
+                                selectedMode = "MODE_2_AUTO_DECLINE",
+                                ruleMatched = "AUTO_MSG_SENT",
+                                decision = "SENT",
+                                latencyMs = 0L,
+                                success = true
+                            )
+                        )
+
+                        result.success(mapOf(
+                            "success" to true,
+                            "message" to "SMS delivered successfully to $cleanRecipient",
+                            "recipient" to cleanRecipient
+                        ))
+                    } catch (e: Exception) {
+                        DiagnosticLogger.logCall(
+                            applicationContext,
+                            DiagnosticLogger.CallEvent(
+                                rawNumber = cleanRecipient,
+                                carrier = "Direct SMS Dispatch",
+                                dndActive = false,
+                                selectedMode = "MODE_2_AUTO_DECLINE",
+                                ruleMatched = "SMS_ERROR",
+                                decision = "FAILED",
+                                latencyMs = 0L,
+                                success = false,
+                                error = e.message
+                            )
+                        )
+                        result.error("SEND_ERROR", e.message ?: "Failed to send SMS", null)
+                    }
+                }
+                "isSmsPermissionGranted" -> {
+                    val granted = ActivityCompat.checkSelfPermission(this, Manifest.permission.SEND_SMS) == PackageManager.PERMISSION_GRANTED
+                    result.success(granted)
+                }
+                "requestSmsPermission" -> {
+                    ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.SEND_SMS), 1005)
+                    result.success(true)
                 }
                 else -> result.notImplemented()
             }

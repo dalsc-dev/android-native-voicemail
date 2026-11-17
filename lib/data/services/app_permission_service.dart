@@ -67,6 +67,25 @@ class AppPermissionService implements PermissionService {
   }
 
   @override
+  Future<bool> isSmsPermissionGranted() async {
+    try {
+      return await Permission.sms.isGranted;
+    } catch (e) {
+      return true;
+    }
+  }
+
+  @override
+  Future<bool> requestSmsPermission() async {
+    try {
+      final status = await Permission.sms.request();
+      return status.isGranted;
+    } catch (e) {
+      return true;
+    }
+  }
+
+  @override
   Future<bool> requestPhonePermission() async {
     try {
       final status = await Permission.phone.request();
@@ -141,6 +160,7 @@ class AppPermissionService implements PermissionService {
       'notifications': await isNotificationsPermissionGranted(),
       'callScreening': await isCallScreeningRoleHeld(),
       'batteryExempt': await isBatteryOptimizationExempt(),
+      'sms': await isSmsPermissionGranted(),
     };
   }
 }

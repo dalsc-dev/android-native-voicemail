@@ -173,11 +173,22 @@ class VoicemailInCallService : InCallService() {
 
             "SELECTED_ONLY" -> {
                 val selectedNumbersJson = prefs.getString("flutter.auto_msg_selected_numbers", "[]") ?: "[]"
+                val contactsJson = prefs.getString("flutter.auto_msg_selected_contacts", "[]") ?: "[]"
                 try {
                     val arr = JSONArray(selectedNumbersJson)
                     for (i in 0 until arr.length()) {
-                        val num = normalizePhoneNumber(arr.getString(i))
-                        if (num == normalizedNumber) return true
+                        val raw = arr.getString(i)
+                        val num = normalizePhoneNumber(raw)
+                        val digits = raw.filter { it.isDigit() }
+                        if (num == normalizedNumber || digits.endsWith(normalizedNumber) || normalizedNumber.endsWith(digits)) return true
+                    }
+                    val contactsArr = JSONArray(contactsJson)
+                    for (i in 0 until contactsArr.length()) {
+                        val obj = contactsArr.getJSONObject(i)
+                        val raw = obj.optString("number", "")
+                        val num = normalizePhoneNumber(raw)
+                        val digits = raw.filter { it.isDigit() }
+                        if (num == normalizedNumber || digits.endsWith(normalizedNumber) || normalizedNumber.endsWith(digits)) return true
                     }
                 } catch (e: Exception) {
                     Log.e(TAG, "Error parsing selected numbers: ${e.message}")
@@ -191,11 +202,22 @@ class VoicemailInCallService : InCallService() {
 
             "EXCLUDE_SELECTED" -> {
                 val selectedNumbersJson = prefs.getString("flutter.auto_msg_selected_numbers", "[]") ?: "[]"
+                val contactsJson = prefs.getString("flutter.auto_msg_selected_contacts", "[]") ?: "[]"
                 try {
                     val arr = JSONArray(selectedNumbersJson)
                     for (i in 0 until arr.length()) {
-                        val num = normalizePhoneNumber(arr.getString(i))
-                        if (num == normalizedNumber) return false
+                        val raw = arr.getString(i)
+                        val num = normalizePhoneNumber(raw)
+                        val digits = raw.filter { it.isDigit() }
+                        if (num == normalizedNumber || digits.endsWith(normalizedNumber) || normalizedNumber.endsWith(digits)) return false
+                    }
+                    val contactsArr = JSONArray(contactsJson)
+                    for (i in 0 until contactsArr.length()) {
+                        val obj = contactsArr.getJSONObject(i)
+                        val raw = obj.optString("number", "")
+                        val num = normalizePhoneNumber(raw)
+                        val digits = raw.filter { it.isDigit() }
+                        if (num == normalizedNumber || digits.endsWith(normalizedNumber) || normalizedNumber.endsWith(digits)) return false
                     }
                 } catch (e: Exception) {
                     Log.e(TAG, "Error parsing excluded numbers: ${e.message}")
@@ -253,7 +275,14 @@ class VoicemailInCallService : InCallService() {
     }
 
     private fun sendAutoReplySms(recipientNumber: String, messageText: String) {
-        if (recipientNumber.isEmpty()) return
+        val cleanRecipient = recipientNumber.filter { it.isDigit() || it == '+' }
+        if (cleanRecipient.isEmpty()) return
+
+        if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.SEND_SMS) != PackageManager.PERMISSION_GRANTED) {
+            Log.w(TAG, "SEND_SMS permission not granted in VoicemailInCallService. Skipping.")
+            return
+        }
+
         try {
             val smsManager = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 getSystemService(SmsManager::class.java)
@@ -262,10 +291,38 @@ class VoicemailInCallService : InCallService() {
                 SmsManager.getDefault()
             }
             val parts = smsManager.divideMessage(messageText)
-            smsManager.sendMultipartTextMessage(recipientNumber, null, parts, null, null)
-            Log.i(TAG, "Auto-reply SMS sent to $recipientNumber")
+            smsManager.sendMultipartTextMessage(cleanRecipient, null, parts, null, null)
+            Log.i(TAG, "Auto-reply SMS sent to $cleanRecipient")
+
+            DiagnosticLogger.logCall(
+                applicationContext,
+                DiagnosticLogger.CallEvent(
+                    rawNumber = cleanRecipient,
+                    carrier = "VoicemailInCallService",
+                    dndActive = true,
+                    selectedMode = "MODE_2_AUTO_DECLINE",
+                    ruleMatched = "AUTO_MSG_SENT",
+                    decision = "DECLINE_AND_SMS",
+                    latencyMs = 0L,
+                    success = true
+                )
+            )
         } catch (e: Exception) {
             Log.e(TAG, "Failed to send auto-reply SMS: ${e.message}")
+            DiagnosticLogger.logCall(
+                applicationContext,
+                DiagnosticLogger.CallEvent(
+                    rawNumber = cleanRecipient,
+                    carrier = "VoicemailInCallService",
+                    dndActive = true,
+                    selectedMode = "MODE_2_AUTO_DECLINE",
+                    ruleMatched = "SMS_ERROR",
+                    decision = "DECLINE_SMS_FAILED",
+                    latencyMs = 0L,
+                    success = false,
+                    error = e.message
+                )
+            )
         }
     }
 }
