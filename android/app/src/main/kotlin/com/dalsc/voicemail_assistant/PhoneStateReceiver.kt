@@ -44,13 +44,21 @@ class PhoneStateReceiver : BroadcastReceiver() {
                 Log.i(TAG, "Mode 3 detected in PhoneStateReceiver. Starting AutoAnswerAssistantService.")
                 AutoAnswerAssistantService.start(context, incomingNumber)
             }
-        } else if (stateStr == TelephonyManager.EXTRA_STATE_IDLE && lastState == TelephonyManager.EXTRA_STATE_RINGING) {
+        } else if (stateStr == TelephonyManager.EXTRA_STATE_IDLE && (lastState == TelephonyManager.EXTRA_STATE_RINGING || lastState == TelephonyManager.EXTRA_STATE_OFFHOOK)) {
             val targetNumber = if (incomingNumber.isNotBlank()) incomingNumber else ringingNumber
+            val previousCallState = lastState
             ringingNumber = ""
 
             if (isAssistantActive && (selectedMode == "MODE_2_AUTO_DECLINE" || selectedMode == "MODE_2_AUTO_DECLINE_SMS")) {
                 handleMode2Decline(context, targetNumber, prefs)
             }
+
+            // Trigger Part 2: Auto-Message After Call (WhatsApp / SMS)
+            AfterCallMessageManager.processCallEnded(
+                context.applicationContext,
+                targetNumber,
+                if (previousCallState == TelephonyManager.EXTRA_STATE_RINGING) "RINGING" else "OFFHOOK"
+            )
         }
         lastState = stateStr
     }

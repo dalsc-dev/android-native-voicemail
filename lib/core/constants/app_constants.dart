@@ -47,6 +47,7 @@ abstract class AppConstants {
   static const String routeSettings = '/settings';
   static const String routeReliability = '/reliability';
   static const String routeDiagnostics = '/diagnostics';
+  static const String routeAfterCallMessage = '/after-call-message';
   static const String routeRegionCarrier = '/region-carrier';
   static const String routeAbout = '/about';
   static const String routeFeedback = '/feedback';

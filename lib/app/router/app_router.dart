@@ -5,6 +5,7 @@ import 'package:voicemail/app/router/app_nav_shell.dart';
 import 'package:voicemail/core/constants/app_constants.dart';
 import 'package:voicemail/design_system/gallery/component_gallery_screen.dart';
 import 'package:voicemail/features/about/presentation/screens/about_screen.dart';
+import 'package:voicemail/features/call_modes/presentation/screens/after_call_auto_message_screen.dart';
 import 'package:voicemail/features/call_modes/presentation/screens/auto_messaging_screen.dart';
 import 'package:voicemail/features/call_modes/presentation/screens/call_modes_screen.dart';
 import 'package:voicemail/features/diagnostics/presentation/screens/call_diagnostics_screen.dart';
@@ -111,6 +112,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/auto-messaging',
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) => const AutoMessagingScreen(),
+      ),
+
+      // After-Call Auto-Messaging (WhatsApp & SMS)
+      GoRoute(
+        path: AppConstants.routeAfterCallMessage,
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const AfterCallAutoMessageScreen(),
       ),
 
       // Legal Hub & Markdown Documents

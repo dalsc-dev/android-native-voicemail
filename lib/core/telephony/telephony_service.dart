@@ -108,4 +108,89 @@ class TelephonyService {
       return false;
     }
   }
+
+  /// Checks if READ_CALL_LOG permission is granted
+  static Future<bool> isCallLogPermissionGranted() async {
+    try {
+      final bool? granted = await _channel.invokeMethod('isCallLogPermissionGranted');
+      return granted ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Requests READ_CALL_LOG runtime permission
+  static Future<bool> requestCallLogPermission() async {
+    try {
+      final bool? result = await _channel.invokeMethod('requestCallLogPermission');
+      return result ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Retrieves live after-call message logs from SQLite
+  static Future<List<Map<String, dynamic>>> getAfterCallLogs({int limit = 100}) async {
+    try {
+      final List<dynamic>? res = await _channel.invokeMethod('getAfterCallLogs', {'limit': limit});
+      if (res != null) {
+        return res.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+      }
+      return [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  /// Clears after-call logs from SQLite
+  static Future<bool> clearAfterCallLogs() async {
+    try {
+      final bool? res = await _channel.invokeMethod('clearAfterCallLogs');
+      return res ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Checks if number has a WhatsApp account / availability
+  static Future<Map<String, dynamic>> checkWhatsAppAvailability(String number, {String country = 'IN'}) async {
+    try {
+      final dynamic res = await _channel.invokeMethod('checkWhatsAppAvailability', {
+        'number': number,
+        'country': country,
+      });
+      if (res != null) {
+        return Map<String, dynamic>.from(res as Map);
+      }
+      return {'isAvailable': false, 'detail': 'Check failed', 'normalizedNumber': number};
+    } catch (e) {
+      return {'isAvailable': false, 'detail': e.toString(), 'normalizedNumber': number};
+    }
+  }
+
+  /// Triggers a test after-call event for a phone number
+  static Future<Map<String, dynamic>> testAfterCallMessage(String number) async {
+    try {
+      final dynamic res = await _channel.invokeMethod('testAfterCallMessage', {'number': number});
+      if (res != null) {
+        return Map<String, dynamic>.from(res as Map);
+      }
+      return {'success': false, 'message': 'Unknown response'};
+    } catch (e) {
+      return {'success': false, 'message': e.toString()};
+    }
+  }
+
+  /// Directly opens personal WhatsApp chat with message pre-filled
+  static Future<bool> openWhatsAppChat(String number, String message) async {
+    try {
+      final bool? res = await _channel.invokeMethod('openWhatsAppChat', {
+        'number': number,
+        'message': message,
+      });
+      return res ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
 }

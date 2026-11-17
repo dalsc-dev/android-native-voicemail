@@ -104,10 +104,14 @@ class VoicemailInCallService : InCallService() {
     override fun onCallRemoved(call: Call) {
         super.onCallRemoved(call)
         Log.i(TAG, "onCallRemoved: ${call.details}")
+        val rawNumber = call.details?.handle?.schemeSpecificPart ?: ""
         if (activeCall == call) {
             activeCall = null
         }
         cancelIncomingCallNotification()
+
+        // Trigger Part 2: Auto-Message After Call (WhatsApp / SMS)
+        AfterCallMessageManager.processCallEnded(applicationContext, rawNumber, "ENDED")
     }
 
     private fun showIncomingCallNotification(callerNumber: String) {

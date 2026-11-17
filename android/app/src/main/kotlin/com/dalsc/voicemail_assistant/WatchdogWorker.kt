@@ -8,8 +8,10 @@ import android.content.Intent
 import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import androidx.work.Constraints
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
@@ -30,8 +32,14 @@ class WatchdogWorker(
         private const val WATCHDOG_CHANNEL_ID = "watchdog_alerts_channel"
 
         fun schedulePeriodicWatchdog(context: Context) {
-            val request = PeriodicWorkRequestBuilder<WatchdogWorker>(4, TimeUnit.HOURS)
-                .setInitialDelay(15, TimeUnit.MINUTES)
+            val constraints = Constraints.Builder()
+                .setRequiredNetworkType(NetworkType.CONNECTED)
+                .setRequiresBatteryNotLow(true)
+                .build()
+
+            val request = PeriodicWorkRequestBuilder<WatchdogWorker>(12, TimeUnit.HOURS)
+                .setConstraints(constraints)
+                .setInitialDelay(30, TimeUnit.MINUTES)
                 .build()
 
             WorkManager.getInstance(context).enqueueUniquePeriodicWork(
@@ -39,7 +47,7 @@ class WatchdogWorker(
                 ExistingPeriodicWorkPolicy.KEEP,
                 request
             )
-            Log.i(TAG, "Watchdog scheduled to audit device health every 4 hours.")
+            Log.i(TAG, "Watchdog scheduled with power-efficient constraints (12h, battery-not-low, connected).")
         }
     }
 

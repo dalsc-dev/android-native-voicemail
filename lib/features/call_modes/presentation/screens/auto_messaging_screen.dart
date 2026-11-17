@@ -221,9 +221,16 @@ class _AutoMessagingScreenState extends ConsumerState<AutoMessagingScreen> {
     }
 
     return AppScaffold(
-      appBar: const AppAppBar(
+      appBar: AppAppBar(
         title: 'Smart Auto-Messaging',
         subtitle: 'Audience Targeting & Dynamic SMS',
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.mark_chat_unread_outlined),
+            tooltip: 'Auto-Message After Call (WhatsApp / SMS)',
+            onPressed: () => context.push(AppConstants.routeAfterCallMessage),
+          ),
+        ],
       ),
       body: ListView(
         padding: AppSpacing.padding16,

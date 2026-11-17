@@ -52,10 +52,14 @@ class _VoicemailDetailScreenState extends ConsumerState<VoicemailDetailScreen> {
   void _startPlayback(int totalDuration) {
     setState(() => _isPlaying = true);
     _playbackTimer?.cancel();
-    _playbackTimer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
-      if (!mounted) return;
+    // 250ms tick rate preserves smooth UI slider response while reducing redraws by 60%, saving battery
+    _playbackTimer = Timer.periodic(const Duration(milliseconds: 250), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
       setState(() {
-        _playbackPosition += 0.1 * _playbackSpeed;
+        _playbackPosition += 0.25 * _playbackSpeed;
         if (_playbackPosition >= totalDuration) {
           _playbackPosition = 0.0;
           _isPlaying = false;

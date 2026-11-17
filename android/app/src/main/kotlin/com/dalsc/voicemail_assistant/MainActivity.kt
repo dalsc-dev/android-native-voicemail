@@ -225,6 +225,61 @@ class MainActivity: FlutterActivity() {
                     ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.SEND_SMS), 1005)
                     result.success(true)
                 }
+                "isCallLogPermissionGranted" -> {
+                    val granted = ActivityCompat.checkSelfPermission(this, Manifest.permission.READ_CALL_LOG) == PackageManager.PERMISSION_GRANTED
+                    result.success(granted)
+                }
+                "requestCallLogPermission" -> {
+                    ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.READ_CALL_LOG), 1006)
+                    result.success(true)
+                }
+                "getAfterCallLogs" -> {
+                    val limit = call.argument<Int>("limit") ?: 100
+                    val logs = AfterCallMessageManager.getLogs(applicationContext, limit)
+                    result.success(logs)
+                }
+                "clearAfterCallLogs" -> {
+                    val cleared = AfterCallMessageManager.clearLogs(applicationContext)
+                    result.success(cleared)
+                }
+                "checkWhatsAppAvailability" -> {
+                    val number = call.argument<String>("number") ?: ""
+                    val country = call.argument<String>("country") ?: "IN"
+                    val e164 = AfterCallMessageManager.normalizeToE164(number, country)
+                    val waCheck = AfterCallMessageManager.checkWhatsAppAvailability(applicationContext, e164)
+                    result.success(mapOf(
+                        "isAvailable" to waCheck.isAvailable,
+                        "detail" to waCheck.detail,
+                        "normalizedNumber" to e164
+                    ))
+                }
+                "testAfterCallMessage" -> {
+                    val number = call.argument<String>("number") ?: ""
+                    AfterCallMessageManager.processCallEnded(applicationContext, number, "TEST")
+                    result.success(mapOf("success" to true, "message" to "Test event triggered for $number"))
+                }
+                "openWhatsAppChat" -> {
+                    val number = call.argument<String>("number") ?: ""
+                    val message = call.argument<String>("message") ?: ""
+                    val cleanDigits = number.filter { it.isDigit() }
+                    try {
+                        val uri = Uri.parse("https://wa.me/$cleanDigits?text=${Uri.encode(message)}")
+                        val waIntent = Intent(Intent.ACTION_VIEW, uri).apply {
+                            setPackage("com.whatsapp")
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                        }
+                        startActivity(waIntent)
+                        result.success(true)
+                    } catch (e: Exception) {
+                        try {
+                            val uri = Uri.parse("https://wa.me/$cleanDigits?text=${Uri.encode(message)}")
+                            startActivity(Intent(Intent.ACTION_VIEW, uri).apply { flags = Intent.FLAG_ACTIVITY_NEW_TASK })
+                            result.success(true)
+                        } catch (err: Exception) {
+                            result.error("WHATSAPP_ERROR", err.message, null)
+                        }
+                    }
+                }
                 else -> result.notImplemented()
             }
         }

@@ -6,6 +6,7 @@ abstract class PermissionService {
   Future<bool> isCallScreeningRoleHeld();
   Future<bool> isBatteryOptimizationExempt();
   Future<bool> isSmsPermissionGranted();
+  Future<bool> isCallLogPermissionGranted();
 
   Future<bool> requestPhonePermission();
   Future<bool> requestContactsPermission();
@@ -14,6 +15,7 @@ abstract class PermissionService {
   Future<bool> requestCallScreeningRole();
   Future<bool> requestBatteryOptimizationExempt();
   Future<bool> requestSmsPermission();
+  Future<bool> requestCallLogPermission();
 
   Future<Map<String, bool>> checkAllPermissions();
 }

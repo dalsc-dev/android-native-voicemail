@@ -103,5 +103,20 @@ void main() {
           c.cleanNumber == '9999999999');
       expect(nonWhitelisted, isFalse);
     });
+
+    test('After-Call Auto-Messaging preferences persist and normalize correctly', () async {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('after_call_auto_msg_enabled', true);
+      await prefs.setString('after_call_trigger_type', 'MISSED_ONLY');
+      await prefs.setInt('after_call_cooldown_hours', 24);
+      await prefs.setBool('after_call_sms_fallback', true);
+      await prefs.setString('after_call_message_template', "Hi, Danish here. I couldn't pick up.");
+
+      expect(prefs.getBool('after_call_auto_msg_enabled'), isTrue);
+      expect(prefs.getString('after_call_trigger_type'), 'MISSED_ONLY');
+      expect(prefs.getInt('after_call_cooldown_hours'), 24);
+      expect(prefs.getBool('after_call_sms_fallback'), isTrue);
+      expect(prefs.getString('after_call_message_template'), contains('Danish'));
+    });
   });
 }

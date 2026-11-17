@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:voicemail/app/di/service_providers.dart';
+import 'package:voicemail/core/constants/app_constants.dart';
 import 'package:voicemail/core/extensions/context_extensions.dart';
 import 'package:voicemail/core/reliability/reliability_service.dart';
 import 'package:voicemail/design_system/components/components.dart';
@@ -436,7 +437,59 @@ class CallModesScreen extends ConsumerWidget {
           }),
           AppSpacing.vSpace16,
 
-          // 4. Exceptions & Whitelist Rules
+          // New Feature: Auto-Message After Call (WhatsApp & SMS)
+          AppCard(
+            variant: AppCardVariant.outlined,
+            borderSide: BorderSide(color: colorScheme.primary.withValues(alpha: 0.5), width: 1.5),
+            onTap: () => context.push(AppConstants.routeAfterCallMessage),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.mark_chat_unread_rounded, color: Colors.green, size: 24),
+                ),
+                AppSpacing.hSpace12,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            'Auto-Message After Call',
+                            style: context.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                          ),
+                          AppSpacing.hSpace8,
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.green,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: const Text(
+                              'WHATSAPP & SMS',
+                              style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.white),
+                            ),
+                          ),
+                        ],
+                      ),
+                      AppSpacing.vSpace4,
+                      Text(
+                        'Instant personal WhatsApp or SMS text when calls end or are missed',
+                        style: context.textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(Icons.chevron_right, color: colorScheme.onSurfaceVariant),
+              ],
+            ),
+          ),
+          AppSpacing.vSpace16,
           Text(
             'EXCEPTIONS & WHITELIST',
             style: context.textTheme.labelMedium?.copyWith(

@@ -24,6 +24,7 @@ class _PermissionRationaleScreenState
     'batteryExempt': false,
     'notifications': false,
     'sms': false,
+    'callLog': false,
   };
 
   bool _isLoading = false;
@@ -179,6 +180,22 @@ class _PermissionRationaleScreenState
                   actionLabel: 'Allow',
                   onGrant: () async {
                     await service.requestSmsPermission();
+                    await _refreshPermissions();
+                  },
+                ),
+                AppSpacing.vSpace12,
+
+                // 8. Call Log Access (Android 10+)
+                AppPermissionCard(
+                  icon: Icons.history_edu_outlined,
+                  title: 'Call Log & History',
+                  description:
+                      'Required on Android 10+ to capture caller numbers for after-call auto-messaging (WhatsApp / SMS) when calls end or are missed.',
+                  isGranted: _statuses['callLog'] ?? false,
+                  isMandatory: false,
+                  actionLabel: 'Allow',
+                  onGrant: () async {
+                    await service.requestCallLogPermission();
                     await _refreshPermissions();
                   },
                 ),

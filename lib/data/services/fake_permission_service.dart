@@ -14,6 +14,7 @@ class FakePermissionService implements PermissionService {
               'batteryExempt': false,
               'notifications': false,
               'sms': false,
+              'callLog': false,
             };
 
   @override
@@ -41,6 +42,9 @@ class FakePermissionService implements PermissionService {
 
   @override
   Future<bool> isSmsPermissionGranted() async => _statuses['sms'] ?? false;
+
+  @override
+  Future<bool> isCallLogPermissionGranted() async => _statuses['callLog'] ?? false;
 
   @override
   Future<bool> requestPhonePermission() async {
@@ -81,6 +85,12 @@ class FakePermissionService implements PermissionService {
   @override
   Future<bool> requestSmsPermission() async {
     _statuses['sms'] = true;
+    return true;
+  }
+
+  @override
+  Future<bool> requestCallLogPermission() async {
+    _statuses['callLog'] = true;
     return true;
   }
 
